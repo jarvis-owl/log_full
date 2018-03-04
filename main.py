@@ -1,7 +1,7 @@
 # @Author: scout
 # @Date:   2018-03-04T10:17:42+01:00
 # @Last modified by:   scout
-# @Last modified time: 2018-03-04T20:53:09+01:00
+# @Last modified time: 2018-03-04T23:03:28+01:00
 # @License: GPL v3
 
 '''
@@ -19,8 +19,8 @@ import datetime
 
 
 #import platform
-from functions import ping_unix,get_core_temp,emit_sql,BMP_read
-PRESSURE=0
+from functions import ping_unix,get_core_temp,emit_sql,BMP_read,DHT_read,onewire_read
+
 
 if __name__ == '__main__':
 
@@ -37,20 +37,26 @@ if __name__ == '__main__':
     #number of queues could be reduced with storing key,value pair in one queue
 
     q_1 = queue.Queue() #will have only one element - ping ratio
-    queues.append(q_1)
+    queues.append(q_1) #ping extern
 
     q_2 = queue.Queue()
-    queues.append(q_2)
+    queues.append(q_2) #ping local
 
     q_ct = queue.Queue()
-    queues.append(q_ct)
+    queues.append(q_ct) #rpi core temp
 
-    q_ap = queue.Queue()
-    queues.append(q_ap)
+    q_bmp = queue.Queue()
+    queues.append(q_bmp) #bmp airpressure and temp
+
+    q_dht = queue.Queue()
+    queues.append(q_dht) #{dht humidity and temperature }x3
+
+    q_one = queue.Queue()
+    queues.append(q_one) #1-wire temp sensor
 
     if True:
         print('collecting data ...')
-    # ========================== =set up threads ============================
+    # =========================== set up threads ============================
     #threading ping out
     thread_p1 = Thread(target=ping_unix,args=('www.duckduckgo.com',q_1) )
     threads.append(thread_p1)
@@ -67,9 +73,19 @@ if __name__ == '__main__':
     thread_ct.start()
 
     #threading airpressure
-    thread_ap = Thread(target=BMP_read,args=('dummy',q_ap) )
-    threads.append(thread_ap)
-    thread_ap.start()
+    thread_bmp = Thread(target=BMP_read,args=('dummy',q_bmp) )
+    threads.append(thread_bmp)
+    thread_bmp.start()
+
+    #threading humidity
+    thread_dht = Thread(target=DHT_read,args=('dummy',q_dht) )
+    threads.append(thread_dht)
+    thread_dht.start()
+
+    #threading 1-wire
+    thread_one = Thread(target=onewire_read,args=('dummy',q_one) )
+    threads.append(thread_one)
+    thread_one.start()
 
     #=============================== join threads ============================
     if VERBOSE:
@@ -79,9 +95,9 @@ if __name__ == '__main__':
             thread.join()
             if VERBOSE: print(str(thread)+' joined')
         except:
-            if VERBOSE:
-                e = sys.exc_info()[0]
-                print( "[-] join failed: %s" % e )
+
+            e = sys.exc_info()[0]
+            print( "[-] join failed: %s" % e )
 
 
     #===================== retrieve return values from queues ================
@@ -91,35 +107,62 @@ if __name__ == '__main__':
     #     #print(tmp,end='\n')
     #     pings_loc+=tmp
     q_2.task_done()
-
     ping_ext = q_1.get()
     q_1.task_done()
 
     core_temp=q_ct.get()
     q_ct.task_done()
 
-    airpressure = q_ap.get()
-    q_ap.task_done()
+    airpressure = q_bmp.get()
+    q_bmp.task_done()
+    temp_bmp = q_bmp.get()
+    q_bmp.task_done()
 
-    temp_bmp = q_ap.get()
-    q_ap.task_done()
+    try:
+        if not q_dht.empty():
+            hum_11 = q_dht.get() #block=true,timeout=2) #boese - timeout too short for MIN
+            q_dht.task_done()
+            temp_11 = q_dht.get()
+            q_dht.task_done()
+            hum_22_1 = q_dht.get()
+            q_dht.task_done()
+            temp_22_1 = q_dht.get()
+            q_dht.task_done()
+            hum_22_2 = q_dht.get()
+            q_dht.task_done()
+            temp_22_2 = q_dht.get()
+            q_dht.task_done()
+        else:
+            print('[-] q_dht empty')
+    except:
+        print('[-] q_dht failed')
+        pass
+
+    temp_out= q_one.get(block=True,timeout=2)
+    q_one.task_done()
 
     for que in queues:
         que.join()
         if VERBOSE: print(str(que)+' joined')
 
+
     datestamp=str(datetime.datetime.fromtimestamp(time.time() ).strftime('%Y-%m-%d') )
     timestamp=str(datetime.datetime.fromtimestamp(time.time() ).strftime('%H:%M:%S') )
 
-
-
     if VERBOSE:
+        print('datestamp: {}'.format(datestamp) )
+        print('timestamp: {}'.format(timestamp) )
+        print('core_temp: {}'.format(core_temp) )
+        print('hum_11: {}'.format(hum_11) )
+        print('temp_11: {}'.format(temp_11) )
+        print('hum_22_1: {}'.format(hum_22_1) )
+        print('temp_22_1: {}'.format(temp_22_1) )
+        print('hum_22_2: {}'.format(hum_22_2) )
+        print('temp_22_2: {}'.format(temp_22_2) )
+        print('airpressure: {}'.format(airpressure) )
+        print('temp_bmp: {}'.format(temp_bmp) )
         print('loc: {:1.2f} out: {:1.2f}'.format(ping_loc,ping_ext ) )
-        print(core_temp)
-        print(timestamp)
-        print(airpressure)
 
 
 
-
-    emit_sql(datestamp=datestamp,timestamp=timestamp,core_temp=core_temp,airpressure=airpressure,temp_bmp=temp_bmp,ping_ext=ping_ext,ping_loc=ping_loc)
+    emit_sql(datestamp=datestamp,timestamp=timestamp,core_temp=core_temp,hum_11=hum_11,temp_11=temp_11,hum_22_1=hum_22_1,temp_22_1=temp_22_1,hum_22_2=hum_22_2,temp_22_2=temp_22_2,airpressure=airpressure,temp_bmp=temp_bmp,temp_out=temp_out,ping_ext=ping_ext,ping_loc=ping_loc)

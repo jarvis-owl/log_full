@@ -1,7 +1,7 @@
 # @Author: scout
 # @Date:   2018-03-04T10:54:16+01:00
 # @Last modified by:   scout
-# @Last modified time: 2018-03-04T20:52:02+01:00
+# @Last modified time: 2018-03-04T23:03:28+01:00
 # @License: GPL v3
 
 '''
@@ -14,6 +14,12 @@ MIN = 5 #default 0.99
 import time
 import mysql.connector as mariadb
 import smbus
+import Adafruit_DHT #> sudo python3 setup.py install >>> src: https://learn.adafruit.com/dht-humidity-sensing-on-raspberry-pi-with-gdocs-logging/software-install-updated
+import numpy as np
+
+#1-wire - drain this!
+import os
+import glob
 
 from subprocess import call,Popen,PIPE
 from socket import gethostbyname
@@ -88,40 +94,6 @@ def get_core_temp(dummy,que):
     except:
         print('[-] get core temp failed')
         return
-
-def emit_sql(datestamp='1970-01-01',timestamp='00:00:00',core_temp=99999,hum_11=11.0,temp_11=5.0,hum_22_1=99.1,temp_22_1=5.1,hum_22_2=99.2,temp_22_2=5.2,airpressure=9999.999,temp_bmp=5.5,temp_out=0.1,ping_ext=0.1,ping_loc=0.2):
-    VERBOSE = True
-    DB_NAME = 'test_database'
-    TB_NAME = 'logx'
-    user = []
-    password = []
-
-    with open('.credentials','r') as f:
-        user = f.readline()
-        password = f.readline().strip()
-
-    # ========================== set up connection =========================
-    #connect to server with no database chosen
-    mariadb_connection = mariadb.connect(host='localhost',user=user, password=password)
-    cursor = mariadb_connection.cursor()
-
-    #if exists choose test_database
-    cursor.execute("CREATE DATABASE IF NOT EXISTS " + DB_NAME)
-    mariadb_connection.commit()
-
-    #connect to database
-    mariadb_connection = mariadb.connect(host='localhost',user=user, password=password, database=DB_NAME)
-    cursor = mariadb_connection.cursor()
-
-    #if exists choose table
-    cursor.execute("CREATE TABLE IF NOT EXISTS "+TB_NAME+" (datestamp TEXT(10), timestamp TEXT(8), core_temp INT(5), hum_11 DECIMAL(3,1), temp_11 DECIMAL(3,1), hum_22_1 DECIMAL(3,1), temp_22_1 DECIMAL(3,1), hum_22_2 DECIMAL(3,1), temp_22_2 DECIMAL(3,1), airpressure DECIMAL(6,3), temp_bmp DECIMAL(5,3), temp_out DECIMAL(5,3), ping_ext DECIMAL(3,2), ping_loc DECIMAL(3,2) ) ")
-
-    # ============================= insert values ===========================
-    cursor.execute("INSERT INTO logx (datestamp,timestamp,core_temp,hum_11,temp_11,hum_22_1,temp_22_1,hum_22_2,temp_22_2,airpressure,temp_bmp,temp_out,ping_ext,ping_loc) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) ",
-                                     (datestamp,timestamp,core_temp,hum_11,temp_11,hum_22_1,temp_22_1,hum_22_2,temp_22_2,airpressure,temp_bmp,temp_out,ping_ext,ping_loc) )
-
-    # ================================ clean up =============================
-    mariadb_connection.commit()
 
 def BMP_read(dummy,que):
 
@@ -221,6 +193,7 @@ def BMP_read(dummy,que):
 
             res_ap.append(pressure)
             res_t.append(cTemp)
+            time.sleep(sleep)
 
         except:
             print('[-] read BMP Sensor failed')
@@ -239,3 +212,108 @@ def BMP_read(dummy,que):
         res+=element
 
     que.put(res/len(res_t) )
+
+def DHT_read(dummy,que):
+    VERBOSE=True
+
+    sensor11 = Adafruit_DHT.DHT11
+    pin11=23
+    sensor22_1 = Adafruit_DHT.DHT22
+    pin22_1=22
+    sensor22_2 = Adafruit_DHT.DHT22
+    pin22_2=27
+
+    humidity11=[];   temperature11=[]
+    humidity22_1=[];   temperature22_1=[]
+    humidity22_2=[];   temperature22_2=[]
+
+    sleep=10
+    duration=int((MIN*60) /sleep )
+    for i in range(duration):
+        try:
+            tmp=Adafruit_DHT.read_retry(sensor11,pin11)
+            humidity11.append(tmp[0])
+            temperature11.append(tmp[1])
+
+            tmp=Adafruit_DHT.read_retry(sensor22_1,pin22_1)
+            humidity22_1.append(tmp[0])
+            temperature22_1.append(tmp[1])
+
+            tmp=Adafruit_DHT.read_retry(sensor22_2,pin22_2)
+            humidity22_2.append(tmp[0])
+            temperature22_2.append(tmp[1])
+
+        except Exception as e:
+            if VERBOSE:
+                print('[-] read DHT failed'+str(e))
+        time.sleep(sleep)
+
+    #mysql cant handle np double
+    que.put(float(np.mean(humidity11)) )
+    que.put(float(np.mean(temperature11)) )
+    que.put(float(np.mean(humidity22_1)) )
+    que.put(float(np.mean(temperature22_1)) )
+    que.put(float(np.mean(humidity22_2)) )
+    que.put(float(np.mean(temperature22_2)) )
+
+def onewire_read(dummy,que):
+    '''this could be shortened'''
+    res=[]
+    # Finds the correct device file that holds the temperature data
+    base_dir = '/sys/bus/w1/devices/'
+    device_folder = glob.glob(base_dir + '28*')[0]
+    device_file = device_folder + '/w1_slave'
+
+    sleep=10
+    duration=int((MIN*60) /sleep )
+
+    for i in range(duration):
+        f = open(device_file, 'r') # Opens the temperature device file
+        lines = f.readlines()
+        f.close()
+        line=lines[1]
+
+        tmp_string = str( line[-5:])
+        res.append( float(tmp_string.strip('\n')) / 1000.0 )
+        #temp_f = temp_c * 9.0 / 5.0 + 32.0
+        time.sleep(sleep)
+
+
+    que.put(float(np.mean(res)) )
+
+
+def emit_sql(datestamp='1970-01-01',timestamp='00:00:00',core_temp=99999,hum_11=11.0,temp_11=5.0,hum_22_1=99.1,temp_22_1=5.1,hum_22_2=99.2,temp_22_2=5.2,airpressure=9999.999,temp_bmp=5.5,temp_out=0.1,ping_ext=0.1,ping_loc=0.2):
+    VERBOSE = True
+    DB_NAME = 'test_database'
+    TB_NAME = 'logx'
+    user = []
+    password = []
+
+    with open('.credentials','r') as f:
+        user = f.readline()
+        password = f.readline().strip()
+
+    # ========================== set up connection =========================
+    #connect to server with no database chosen
+    mariadb_connection = mariadb.connect(host='localhost',user=user, password=password)
+    cursor = mariadb_connection.cursor()
+
+    #if exists choose test_database
+    cursor.execute("CREATE DATABASE IF NOT EXISTS " + DB_NAME)
+    mariadb_connection.commit()
+
+    #connect to database
+    mariadb_connection = mariadb.connect(host='localhost',user=user, password=password, database=DB_NAME)
+    cursor = mariadb_connection.cursor()
+
+    #if exists choose table
+    cursor.execute("CREATE TABLE IF NOT EXISTS "+TB_NAME+" (datestamp TEXT(10), timestamp TEXT(8), core_temp INT(5), hum_11 DECIMAL(3,1), temp_11 DECIMAL(3,1), hum_22_1 DECIMAL(3,1), temp_22_1 DECIMAL(3,1), hum_22_2 DECIMAL(3,1), temp_22_2 DECIMAL(3,1), airpressure DECIMAL(6,3), temp_bmp DECIMAL(5,3), temp_out DECIMAL(5,3), ping_ext DECIMAL(3,2), ping_loc DECIMAL(3,2) ) ")
+
+    # ============================= insert values ===========================
+    cursor.execute("INSERT INTO logx (datestamp,timestamp,core_temp,hum_11,temp_11,hum_22_1,temp_22_1,hum_22_2,temp_22_2,airpressure,temp_bmp,temp_out,ping_ext,ping_loc) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) ",
+                                     (datestamp,timestamp,core_temp,hum_11,temp_11,hum_22_1,temp_22_1,hum_22_2,temp_22_2,airpressure,temp_bmp,temp_out,ping_ext,ping_loc) )
+
+    # ================================ clean up =============================
+    mariadb_connection.commit()
+    if VERBOSE:
+        print('from emit_sql: {}'.format(timestamp) )
