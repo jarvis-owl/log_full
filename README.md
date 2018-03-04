@@ -26,6 +26,7 @@ A Python script to write acquired sensor data into SQL (MariaDB).
 - [ ] show SQL on website
 - [ ] build graphs from database
 - coffee &#x2713; &#x2713;
+- tea  |
 
 ---------------------------------------------------------------------------
 

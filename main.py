@@ -1,7 +1,7 @@
 # @Author: scout
 # @Date:   2018-03-04T10:17:42+01:00
 # @Last modified by:   scout
-# @Last modified time: 2018-03-04T19:16:35+01:00
+# @Last modified time: 2018-03-04T20:53:09+01:00
 # @License: GPL v3
 
 '''
@@ -19,14 +19,12 @@ import datetime
 
 
 #import platform
-from functions import ping_unix,get_core_temp,emit_sql
-
+from functions import ping_unix,get_core_temp,emit_sql,BMP_read
+PRESSURE=0
 
 if __name__ == '__main__':
 
     # ============================ OBTAIN VALUES ============================
-
-
     #thread management:
     setdefaulttimeout(1)
 
@@ -37,7 +35,7 @@ if __name__ == '__main__':
     #============================ set up queues =============================
     queues = []
     #number of queues could be reduced with storing key,value pair in one queue
-    #one global variable would have been sufficient .... -.-* 
+
     q_1 = queue.Queue() #will have only one element - ping ratio
     queues.append(q_1)
 
@@ -46,6 +44,9 @@ if __name__ == '__main__':
 
     q_ct = queue.Queue()
     queues.append(q_ct)
+
+    q_ap = queue.Queue()
+    queues.append(q_ap)
 
     if True:
         print('collecting data ...')
@@ -65,14 +66,18 @@ if __name__ == '__main__':
     threads.append(thread_ct)
     thread_ct.start()
 
+    #threading airpressure
+    thread_ap = Thread(target=BMP_read,args=('dummy',q_ap) )
+    threads.append(thread_ap)
+    thread_ap.start()
 
     #=============================== join threads ============================
     if VERBOSE:
         print('#threads: '+str(len(threads)) )
-    #time.sleep(8)
     for thread in threads:
         try:
             thread.join()
+            if VERBOSE: print(str(thread)+' joined')
         except:
             if VERBOSE:
                 e = sys.exc_info()[0]
@@ -93,15 +98,28 @@ if __name__ == '__main__':
     core_temp=q_ct.get()
     q_ct.task_done()
 
+    airpressure = q_ap.get()
+    q_ap.task_done()
+
+    temp_bmp = q_ap.get()
+    q_ap.task_done()
+
     for que in queues:
         que.join()
-
-
-
-    print('loc: {:1.2f} out: {:1.2f}'.format(ping_loc,ping_ext ) )
-    print(core_temp)
+        if VERBOSE: print(str(que)+' joined')
 
     datestamp=str(datetime.datetime.fromtimestamp(time.time() ).strftime('%Y-%m-%d') )
     timestamp=str(datetime.datetime.fromtimestamp(time.time() ).strftime('%H:%M:%S') )
 
-    emit_sql(datestamp=datestamp,timestamp=timestamp,core_temp=core_temp,ping_ext=ping_ext,ping_loc=ping_loc)
+
+
+    if VERBOSE:
+        print('loc: {:1.2f} out: {:1.2f}'.format(ping_loc,ping_ext ) )
+        print(core_temp)
+        print(timestamp)
+        print(airpressure)
+
+
+
+
+    emit_sql(datestamp=datestamp,timestamp=timestamp,core_temp=core_temp,airpressure=airpressure,temp_bmp=temp_bmp,ping_ext=ping_ext,ping_loc=ping_loc)
