@@ -16,7 +16,9 @@ A Python script to write acquired sensor data into SQL (MariaDB).
 - [x] setup project / repository
 - [ ] setup MariaDB
 - [ ] implement logging
-  - [ ]  heartbeat
+  - [x]  heartbeat
+    - [x] threading
+    - [x] queuing ([return values from threads](https://stackoverflow.com/questions/2577233/threading-in-python-retrieve-return-value-when-using-target))
   - [ ]  core_temp
   - [ ]  DHT Sensors
   - [ ]  BMP Sensors
