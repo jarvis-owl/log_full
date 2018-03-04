@@ -1,50 +1,74 @@
 # @Author: scout
 # @Date:   2018-03-04T10:17:42+01:00
 # @Last modified by:   scout
-# @Last modified time: 2018-03-04T14:46:21+01:00
+# @Last modified time: 2018-03-04T19:16:35+01:00
 # @License: GPL v3
 
 '''
     this holds the main procedures
 '''
 
-VERBOSE = True
-import time
-import sys
+VERBOSE = False
 
-import datetime
-from threading import *
 from socket import *
 import queue
+from threading import *
+import time
+import datetime
+
+
 
 #import platform
-from functions import ping_unix
+from functions import ping_unix,get_core_temp,emit_sql
 
 
 if __name__ == '__main__':
-    #core_temp=call(["cat","/sys/class/thermal/thermal_zone0/temp"])
 
+    # ============================ OBTAIN VALUES ============================
+
+
+    #thread management:
     setdefaulttimeout(1)
 
     threads = []
     nb_threads = 8
     max_id = 945718
+
+    #============================ set up queues =============================
+    queues = []
+    #number of queues could be reduced with storing key,value pair in one queue
+    #one global variable would have been sufficient .... -.-* 
     q_1 = queue.Queue() #will have only one element - ping ratio
+    queues.append(q_1)
+
     q_2 = queue.Queue()
+    queues.append(q_2)
 
+    q_ct = queue.Queue()
+    queues.append(q_ct)
 
-    #[n_dix, n_router] = ping_unix() #this should probably be threaded
-
-    #threading ping
+    if True:
+        print('collecting data ...')
+    # ========================== =set up threads ============================
+    #threading ping out
     thread_p1 = Thread(target=ping_unix,args=('www.duckduckgo.com',q_1) )
     threads.append(thread_p1)
     thread_p1.start()
 
+    #threading ping loc
     thread_p2 = Thread(target=ping_unix,args=('fritz.box',q_2))
     threads.append(thread_p2)
     thread_p2.start()
 
-    print('#threads: '+str(len(threads)) )
+    #threading core temp
+    thread_ct = Thread(target=get_core_temp,args=('dummy',q_ct) )
+    threads.append(thread_ct)
+    thread_ct.start()
+
+
+    #=============================== join threads ============================
+    if VERBOSE:
+        print('#threads: '+str(len(threads)) )
     #time.sleep(8)
     for thread in threads:
         try:
@@ -54,37 +78,30 @@ if __name__ == '__main__':
                 e = sys.exc_info()[0]
                 print( "[-] join failed: %s" % e )
 
-    # thread_p1.join()
-    # thread_p2.join()
 
-#evaluate pings
-    #sum pings up
-    print("size q_1: "+str(q_1.qsize() ) )
-    print("size q_2: "+str(q_2.qsize() ) )
-
-    pings_loc = 0
-    for _ in range(q_2.qsize() ):
-        tmp = q_2.get()
-        print(tmp,end='')
-        pings_loc+=tmp
-
+    #===================== retrieve return values from queues ================
+    ping_loc = q_2.get() #was 0, but next lines are unecessary - queue size = 1, but would work, if < 1
+    # for _ in range(q_2.qsize() ):
+    #     tmp = q_2.get()
+    #     #print(tmp,end='\n')
+    #     pings_loc+=tmp
     q_2.task_done()
 
-    pings_out = 0
-    for _ in range(q_1.qsize() ):
-        tmp = q_1.get()
-        pings_out+=tmp
-
+    ping_ext = q_1.get()
     q_1.task_done()
 
-    q_1.join()
-    q_2.join()
+    core_temp=q_ct.get()
+    q_ct.task_done()
 
-    if VERBOSE:
-        print('{} {}'.format(pings_loc,pings_out ) )
-        #write in sql later
+    for que in queues:
+        que.join()
 
-    with open('/home/pi/share/timestamps.log','a') as f:
-        #f.write(' {0:.2f}'.format(ny))
-        #print('{} {}'.format(n_dix,n_router))
-        f.close()
+
+
+    print('loc: {:1.2f} out: {:1.2f}'.format(ping_loc,ping_ext ) )
+    print(core_temp)
+
+    datestamp=str(datetime.datetime.fromtimestamp(time.time() ).strftime('%Y-%m-%d') )
+    timestamp=str(datetime.datetime.fromtimestamp(time.time() ).strftime('%H:%M:%S') )
+
+    emit_sql(datestamp=datestamp,timestamp=timestamp,core_temp=core_temp,ping_ext=ping_ext,ping_loc=ping_loc)

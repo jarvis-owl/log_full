@@ -14,24 +14,25 @@
 A Python script to write acquired sensor data into SQL (MariaDB).
 
 - [x] setup project / repository
-- [ ] setup MariaDB
+- [x] setup MariaDB
 - [ ] implement logging
   - [x]  heartbeat
     - [x] threading
     - [x] queuing ([return values from threads](https://stackoverflow.com/questions/2577233/threading-in-python-retrieve-return-value-when-using-target))
-  - [ ]  core_temp
+  - [x]  core_temp
   - [ ]  DHT Sensors
   - [ ]  BMP Sensors
   - [ ]  1w Sensor
 - [ ] show SQL on website
 - [ ] build graphs from database
-- coffee &#x2713;
+- coffee &#x2713; &#x2713;
 
 ---------------------------------------------------------------------------
 
 ## Prospect
 - add further sensors
 - validate plausible sensor values
+- [check bandwidth](https://stackoverflow.com/questions/316866/ping-a-site-in-python/317206#317206) with RTT
 
 ## License
 ```
