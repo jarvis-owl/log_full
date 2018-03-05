@@ -1,7 +1,7 @@
 # @Author: scout
 # @Date:   2018-03-04T10:17:42+01:00
 # @Last modified by:   scout
-# @Last modified time: 2018-03-04T23:03:28+01:00
+# @Last modified time: 2018-03-05T15:51:36+01:00
 # @License: GPL v3
 
 '''
@@ -138,7 +138,7 @@ if __name__ == '__main__':
         print('[-] q_dht failed')
         pass
 
-    temp_out= q_one.get(block=True,timeout=2)
+    temp_out= q_one.get()#block=True,timeout=2) #here it worked - ?
     q_one.task_done()
 
     for que in queues:

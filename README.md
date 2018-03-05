@@ -31,6 +31,7 @@ A Python script to write acquired sensor data into SQL (MariaDB).
 # Appearances
 - sometimes no INSERT is emitted - a DROP DATABASE relieves - to be investigated
 - make sleep global?
+- eventually the sleep for the DHT Sensors should be raised
 
 ---------------------------------------------------------------------------
 

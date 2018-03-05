@@ -1,7 +1,7 @@
 # @Author: scout
 # @Date:   2018-03-04T10:54:16+01:00
 # @Last modified by:   scout
-# @Last modified time: 2018-03-04T23:03:28+01:00
+# @Last modified time: 2018-03-05T15:42:10+01:00
 # @License: GPL v3
 
 '''
@@ -9,7 +9,7 @@
 '''
 
 
-MIN = 5 #default 0.99
+MIN = 1 #default 0.99
 
 import time
 import mysql.connector as mariadb
@@ -289,7 +289,7 @@ def emit_sql(datestamp='1970-01-01',timestamp='00:00:00',core_temp=99999,hum_11=
     user = []
     password = []
 
-    with open('.credentials','r') as f:
+    with open('/home/pi/log_full/.credentials','r') as f:
         user = f.readline()
         password = f.readline().strip()
 
