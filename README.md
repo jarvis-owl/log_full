@@ -30,8 +30,11 @@ A Python script to write acquired sensor data into SQL (MariaDB).
 
 # Appearances
 - sometimes no INSERT is emitted - a DROP DATABASE relieves - to be investigated
-- make sleep global?
-- eventually the sleep for the DHT Sensors should be raised
+- ~~make sleep global?~~ bad practice - make it a call parameter *(silly you)*
+- eventually the sleep for the DHT Sensors should be increased
+- I'm not very satisfied with the unique queues per task. Is there a better way?
+- future me - do you understand the code? -> *comments*
+- call parameters are */would be* nice for testing
 
 ---------------------------------------------------------------------------
 
@@ -40,6 +43,8 @@ A Python script to write acquired sensor data into SQL (MariaDB).
 - validate plausible sensor values
 - [check bandwidth](https://stackoverflow.com/questions/316866/ping-a-site-in-python/317206#317206) with RTT
 - use LOG
+- log the time a run really takes (tic,toc)
+- log unix timestamp
 
 ## License
 ```

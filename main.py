@@ -1,7 +1,7 @@
 # @Author: scout
 # @Date:   2018-03-04T10:17:42+01:00
 # @Last modified by:   scout
-# @Last modified time: 2018-03-05T15:51:36+01:00
+# @Last modified time: 2018-03-06T20:41:36+01:00
 # @License: GPL v3
 
 '''
@@ -21,6 +21,8 @@ import datetime
 #import platform
 from functions import ping_unix,get_core_temp,emit_sql,BMP_read,DHT_read,onewire_read
 
+
+                        # TICTOCTICTOCTICTOCTICTOCTIC
 
 if __name__ == '__main__':
 
@@ -119,7 +121,7 @@ if __name__ == '__main__':
     q_bmp.task_done()
 
     try:
-        if not q_dht.empty():
+        if not q_dht.empty(): #this should be done for every queue.get()
             hum_11 = q_dht.get() #block=true,timeout=2) #boese - timeout too short for MIN
             q_dht.task_done()
             temp_11 = q_dht.get()
@@ -138,7 +140,7 @@ if __name__ == '__main__':
         print('[-] q_dht failed')
         pass
 
-    temp_out= q_one.get()#block=True,timeout=2) #here it worked - ?
+    temp_out= q_one.get()#block=True,timeout=2) #here it worked - !?
     q_one.task_done()
 
     for que in queues:

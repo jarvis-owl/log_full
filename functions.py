@@ -1,7 +1,7 @@
 # @Author: scout
 # @Date:   2018-03-04T10:54:16+01:00
 # @Last modified by:   scout
-# @Last modified time: 2018-03-05T15:42:10+01:00
+# @Last modified time: 2018-03-06T20:38:41+01:00
 # @License: GPL v3
 
 '''
@@ -9,7 +9,7 @@
 '''
 
 
-MIN = 1 #default 0.99
+MIN = 1 #duration of data collection, see sleep for further resolution
 
 import time
 import mysql.connector as mariadb
@@ -54,8 +54,6 @@ def ping_unix(host,que):
 
         time.sleep(1)
 
-
-    #return ([n/(MIN*60),m/(MIN*60)] )
     try:
         if VERBOSE:
             print('[+] queue.put')
@@ -80,17 +78,19 @@ def get_core_temp(dummy,que):
                 temp.append( int( f.read() ) ) #readline
                 f.close()
 
-            time.sleep(sleep) #this should be increased
+            time.sleep(sleep) #this should be increased, resolution unecessary
 
         if VERBOSE:
             print(temp)
 
         res=0
-        #did not want to import numpy
+        #did not want to import numpy - oh you should have :P
         for index,element in enumerate(temp):
             res+=element
 
         que.put(int(res/len(temp) ) )
+        #que.put(int(np.mean(temp)))
+
     except:
         print('[-] get core temp failed')
         return
@@ -98,13 +98,22 @@ def get_core_temp(dummy,que):
 def BMP_read(dummy,que):
 
     sleep=10
-    duration=int((MIN*60) /sleep )
+    duration=int( (MIN*60) /sleep )
     res_ap=[]
     res_t=[]
 
     for i in range(duration):
 
         try:
+            #the following code was copied and not necessaily has to be understood
+
+            # Distributed with a free-will license.
+            # Use it any way you want, profit or free, provided it fits in the licenses of its associated works.
+            # BMP280
+            # This code is designed to work with the BMP280_I2CS I2C Mini Module available from ControlEverything.com.
+            # https://www.controleverything.com/content/Barometer?sku=BMP280_I2CSs#tabs-0-product_tabset-2
+
+
             # Get I2C bus
             bus = smbus.SMBus(1)
 
@@ -206,15 +215,19 @@ def BMP_read(dummy,que):
         res+=element
 
     que.put(res/len(res_ap) )
+    #que.put(float(np.mean(res_ap)) )
 
     res=0
     for index,element in enumerate(res_t):
         res+=element
 
     que.put(res/len(res_t) )
+    #que.put(float(np.mean(res_t)) )
+
 
 def DHT_read(dummy,que):
-    VERBOSE=True
+    VERBOSE=False
+    sleep=10
 
     sensor11 = Adafruit_DHT.DHT11
     pin11=23
@@ -227,7 +240,7 @@ def DHT_read(dummy,que):
     humidity22_1=[];   temperature22_1=[]
     humidity22_2=[];   temperature22_2=[]
 
-    sleep=10
+
     duration=int((MIN*60) /sleep )
     for i in range(duration):
         try:
@@ -257,7 +270,8 @@ def DHT_read(dummy,que):
     que.put(float(np.mean(temperature22_2)) )
 
 def onewire_read(dummy,que):
-    '''this could be shortened'''
+    '''this could be shortened''' '''was shortened'''
+
     res=[]
     # Finds the correct device file that holds the temperature data
     base_dir = '/sys/bus/w1/devices/'
@@ -265,7 +279,7 @@ def onewire_read(dummy,que):
     device_file = device_folder + '/w1_slave'
 
     sleep=10
-    duration=int((MIN*60) /sleep )
+    duration=int( (MIN*60) /sleep )
 
     for i in range(duration):
         f = open(device_file, 'r') # Opens the temperature device file
@@ -284,8 +298,8 @@ def onewire_read(dummy,que):
 
 def emit_sql(datestamp='1970-01-01',timestamp='00:00:00',core_temp=99999,hum_11=11.0,temp_11=5.0,hum_22_1=99.1,temp_22_1=5.1,hum_22_2=99.2,temp_22_2=5.2,airpressure=9999.999,temp_bmp=5.5,temp_out=0.1,ping_ext=0.1,ping_loc=0.2):
     VERBOSE = True
-    DB_NAME = 'test_database'
-    TB_NAME = 'logx'
+    DB_NAME = 'test_database' #get better name - first release upcoming
+    TB_NAME = 'logx' #same here
     user = []
     password = []
 
