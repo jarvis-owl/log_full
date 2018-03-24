@@ -23,6 +23,8 @@ A Python script to write acquired sensor data into SQL (MariaDB).
   - [x]  DHT Sensors
   - [x]  BMP Sensors
   - [x]  1w Sensor
+- [ ] add RPi clock and volts
+- [x] add Unix time
 - [ ] show SQL on website
 - [ ] build graphs from database
 - coffee &#x2713; &#x2713;
@@ -35,6 +37,8 @@ A Python script to write acquired sensor data into SQL (MariaDB).
 - I'm not very satisfied with the unique queues per task. Is there a better way?
 - future me - do you understand the code? -> *comments*
 - call parameters are */would be* nice for testing
+- __ping should be permanent__
+- after reboot occationally database access is rejected and not catched.
 
 ---------------------------------------------------------------------------
 
@@ -42,11 +46,11 @@ A Python script to write acquired sensor data into SQL (MariaDB).
 - add further sensors
 - validate plausible sensor values
 - [check bandwidth](https://stackoverflow.com/questions/316866/ping-a-site-in-python/317206#317206) with RTT
+- avg ping time
 - use LOG
 - log the time a run really takes (tic,toc)
 - log unix timestamp
 
 ## License
-```
-see LICENSE
- ```
+
+see [LICENSE](https://github.com/jarvis-owl/log_full/#LICENSE)

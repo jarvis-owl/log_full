@@ -1,7 +1,7 @@
 # @Author: scout
 # @Date:   2018-03-04T10:17:42+01:00
-# @Last modified by:   jarvis
-# @Last modified time: 2018-03-06T20:46:54+01:00
+# @Last modified by:   scout
+# @Last modified time: 2018-03-24T11:02:10+01:00
 # @License: GPL v3
 
 '''
@@ -56,7 +56,7 @@ if __name__ == '__main__':
     q_one = queue.Queue()
     queues.append(q_one) #1-wire temp sensor
 
-    if True:
+    if VERBOSE:
         print('collecting data ...')
     # =========================== set up threads ============================
     #threading ping out
@@ -147,11 +147,15 @@ if __name__ == '__main__':
         que.join()
         if VERBOSE: print(str(que)+' joined')
 
-
+    #add unix timestamp
+    unix = time.time()
+    # v could be omitted
     datestamp=str(datetime.datetime.fromtimestamp(time.time() ).strftime('%Y-%m-%d') )
     timestamp=str(datetime.datetime.fromtimestamp(time.time() ).strftime('%H:%M:%S') )
 
+
     if VERBOSE:
+        print('unix: {}'.format(unix) )
         print('datestamp: {}'.format(datestamp) )
         print('timestamp: {}'.format(timestamp) )
         print('core_temp: {}'.format(core_temp) )
@@ -167,4 +171,4 @@ if __name__ == '__main__':
 
 
 
-    emit_sql(datestamp=datestamp,timestamp=timestamp,core_temp=core_temp,hum_11=hum_11,temp_11=temp_11,hum_22_1=hum_22_1,temp_22_1=temp_22_1,hum_22_2=hum_22_2,temp_22_2=temp_22_2,airpressure=airpressure,temp_bmp=temp_bmp,temp_out=temp_out,ping_ext=ping_ext,ping_loc=ping_loc)
+    emit_sql(unix=unix, datestamp=datestamp,timestamp=timestamp,core_temp=core_temp,hum_11=hum_11,temp_11=temp_11,hum_22_1=hum_22_1,temp_22_1=temp_22_1,hum_22_2=hum_22_2,temp_22_2=temp_22_2,airpressure=airpressure,temp_bmp=temp_bmp,temp_out=temp_out,ping_ext=ping_ext,ping_loc=ping_loc)

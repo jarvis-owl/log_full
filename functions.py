@@ -1,7 +1,7 @@
 # @Author: scout
 # @Date:   2018-03-04T10:54:16+01:00
 # @Last modified by:   scout
-# @Last modified time: 2018-03-06T20:38:41+01:00
+# @Last modified time: 2018-03-24T11:15:40+01:00
 # @License: GPL v3
 
 '''
@@ -296,8 +296,8 @@ def onewire_read(dummy,que):
     que.put(float(np.mean(res)) )
 
 
-def emit_sql(datestamp='1970-01-01',timestamp='00:00:00',core_temp=99999,hum_11=11.0,temp_11=5.0,hum_22_1=99.1,temp_22_1=5.1,hum_22_2=99.2,temp_22_2=5.2,airpressure=9999.999,temp_bmp=5.5,temp_out=0.1,ping_ext=0.1,ping_loc=0.2):
-    VERBOSE = True
+def emit_sql(unix=1521840837.0873652, datestamp='1970-01-01',timestamp='00:00:00',core_temp=99999,hum_11=11.0,temp_11=5.0,hum_22_1=99.1,temp_22_1=5.1,hum_22_2=99.2,temp_22_2=5.2,airpressure=9999.999,temp_bmp=5.5,temp_out=0.1,ping_ext=0.1,ping_loc=0.2):
+    VERBOSE = False
     DB_NAME = 'test_database' #get better name - first release upcoming
     TB_NAME = 'logx' #same here
     user = []
@@ -321,11 +321,11 @@ def emit_sql(datestamp='1970-01-01',timestamp='00:00:00',core_temp=99999,hum_11=
     cursor = mariadb_connection.cursor()
 
     #if exists choose table
-    cursor.execute("CREATE TABLE IF NOT EXISTS "+TB_NAME+" (datestamp TEXT(10), timestamp TEXT(8), core_temp INT(5), hum_11 DECIMAL(3,1), temp_11 DECIMAL(3,1), hum_22_1 DECIMAL(3,1), temp_22_1 DECIMAL(3,1), hum_22_2 DECIMAL(3,1), temp_22_2 DECIMAL(3,1), airpressure DECIMAL(6,3), temp_bmp DECIMAL(5,3), temp_out DECIMAL(5,3), ping_ext DECIMAL(3,2), ping_loc DECIMAL(3,2) ) ")
+    cursor.execute("CREATE TABLE IF NOT EXISTS "+TB_NAME+" (unix INT(10), datestamp TEXT(10), timestamp TEXT(8), core_temp INT(5), hum_11 DECIMAL(3,1), temp_11 DECIMAL(3,1), hum_22_1 DECIMAL(3,1), temp_22_1 DECIMAL(3,1), hum_22_2 DECIMAL(3,1), temp_22_2 DECIMAL(3,1), airpressure DECIMAL(6,3), temp_bmp DECIMAL(5,3), temp_out DECIMAL(5,3), ping_ext DECIMAL(3,2), ping_loc DECIMAL(3,2) ) ")
 
     # ============================= insert values ===========================
-    cursor.execute("INSERT INTO logx (datestamp,timestamp,core_temp,hum_11,temp_11,hum_22_1,temp_22_1,hum_22_2,temp_22_2,airpressure,temp_bmp,temp_out,ping_ext,ping_loc) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) ",
-                                     (datestamp,timestamp,core_temp,hum_11,temp_11,hum_22_1,temp_22_1,hum_22_2,temp_22_2,airpressure,temp_bmp,temp_out,ping_ext,ping_loc) )
+    cursor.execute("INSERT INTO logx (unix, datestamp,timestamp,core_temp,hum_11,temp_11,hum_22_1,temp_22_1,hum_22_2,temp_22_2,airpressure,temp_bmp,temp_out,ping_ext,ping_loc) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) ",
+                                     (unix, datestamp,timestamp,core_temp,hum_11,temp_11,hum_22_1,temp_22_1,hum_22_2,temp_22_2,airpressure,temp_bmp,temp_out,ping_ext,ping_loc) )
 
     # ================================ clean up =============================
     mariadb_connection.commit()
