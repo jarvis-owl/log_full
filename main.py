@@ -1,7 +1,7 @@
 # @Author: scout
 # @Date:   2018-03-04T10:17:42+01:00
 # @Last modified by:   scout
-# @Last modified time: 2018-03-24T11:02:10+01:00
+# @Last modified time: 2018-03-24T17:01:36+01:00
 # @License: GPL v3
 
 '''
@@ -30,6 +30,7 @@ if __name__ == '__main__':
     #thread management:
     setdefaulttimeout(1)
 
+    t1 = time.time()
     threads = []
     nb_threads = 8
     max_id = 945718
@@ -172,3 +173,4 @@ if __name__ == '__main__':
 
 
     emit_sql(unix=unix, datestamp=datestamp,timestamp=timestamp,core_temp=core_temp,hum_11=hum_11,temp_11=temp_11,hum_22_1=hum_22_1,temp_22_1=temp_22_1,hum_22_2=hum_22_2,temp_22_2=temp_22_2,airpressure=airpressure,temp_bmp=temp_bmp,temp_out=temp_out,ping_ext=ping_ext,ping_loc=ping_loc)
+    print(time.time()-t1)
